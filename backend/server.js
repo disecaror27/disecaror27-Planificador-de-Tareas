@@ -5,7 +5,20 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
-app.use(cors());
+
+// ✅ CONFIGURACIÓN CORS CORREGIDA PARA VERCEL
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    'https://disecaror27-planificador-de-tareas.vercel.app',
+    'https://disecaror27-planificador-de-tareas-git-*.vercel.app',
+    'https://disecaror27-planificador-de-tareas-*.vercel.app'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json());
 
 // Conexión a MongoDB Atlas
@@ -183,6 +196,15 @@ app.get('/api/stats', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+});
+
+// Manejo de errores global
+process.on('uncaughtException', (error) => {
+  console.error('❌ UNCAUGHT EXCEPTION:', error);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ UNHANDLED REJECTION at:', promise, 'reason:', reason);
 });
 
 const PORT = process.env.PORT || 3000;

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 
-const API_URL = 'http://localhost:3000/api';
+// ✅ URL CORREGIDA - APUNTA AL BACKEND EN RAILWAY
+const API_URL = 'https://disecaror27-planificador-de-tareas-production.up.railway.app/api';
 
 function App() {
   const [tasks, setTasks] = useState([]);
