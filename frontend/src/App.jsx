@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 
-// ✅ URL CORREGIDA - BACKEND EN RAILWAY
-const API_URL = 'https://disecaror27-planificador-de-tareas-production.up.railway.app/api';
+// ✅ URL CORREGIDA - BACKEND EN RENDER
+const API_URL = 'https://disecaror27-planificador-de-tareas.onrender.com/api';
 
 function App() {
   const [tasks, setTasks] = useState([]);
@@ -90,7 +90,7 @@ function App() {
           alt="Logo ITS Japon" 
           className="header-image"
         />
-        <h1>Planificador de Tareas ITS Japon</h1>
+        <h1>Planificador de Tareas ITS Japón</h1>
         <p>Base de datos: MongoDB + PostgreSQL</p>
       </header>
 
