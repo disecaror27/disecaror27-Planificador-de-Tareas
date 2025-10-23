@@ -21,7 +21,7 @@ app.use(cors({
 
 app.use(express.json());
 
-// ✅ CONEXIÓN MONGODB CON TU STRING
+// ✅ CONEXIÓN MONGODB
 mongoose.connect('mongodb+srv://disecaror27_db_user:disecaror27@cluster0.tnhmlkl.mongodb.net/tareasdb?retryWrites=true&w=majority&appName=Cluster0')
   .then(() => console.log('✅ Conectado a MongoDB Atlas'))
   .catch(err => console.error('❌ Error MongoDB:', err));
@@ -256,8 +256,27 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('❌ UNHANDLED REJECTION at:', promise, 'reason:', reason);
 });
 
+// ✅ CONFIGURACIÓN OPTIMIZADA PARA RAILWAY
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
-  console.log(`📚 API disponible en: http://localhost:${PORT}/api`);
+  console.log(`📚 API disponible en: http://0.0.0.0:${PORT}/api`);
+});
+
+// Manejo graceful de shutdown para Railway
+process.on('SIGTERM', () => {
+  console.log('🔄 Recibió SIGTERM, cerrando gracefully...');
+  server.close(() => {
+    console.log('✅ Servidor cerrado');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('🔄 Recibió SIGINT, cerrando gracefully...');
+  server.close(() => {
+    console.log('✅ Servidor cerrado');
+    process.exit(0);
+  });
 });
