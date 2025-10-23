@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 
-// ✅ URL CORREGIDA - APUNTA AL BACKEND EN RAILWAY
+// ✅ URL CORREGIDA - BACKEND EN RAILWAY
 const API_URL = 'https://disecaror27-planificador-de-tareas-production.up.railway.app/api';
 
 function App() {

@@ -2,7 +2,6 @@ const express = require('express');
 const mongoose = require('mongoose');
 const { Pool } = require('pg');
 const cors = require('cors');
-require('dotenv').config();
 
 const app = express();
 
@@ -31,11 +30,7 @@ const pgPool = new Pool({
   connectionString: 'postgresql://disecaror27_user:sJgyJDqNT8EyQRcGr93f2v3BqJ75ghdQ@dpg-d3rfnt1r0fns73djvkf0-a.oregon-postgres.render.com/disecaror27?ssl=true',
   ssl: {
     rejectUnauthorized: false
-  },
-  // Configuración para reconexión automática
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-  max: 10
+  }
 });
 
 // Manejo de errores de PostgreSQL
@@ -43,37 +38,24 @@ pgPool.on('error', (err, client) => {
   console.error('❌ Error in PostgreSQL pool:', err.message);
 });
 
-// Verificar conexión PostgreSQL con reconexión
-const connectPostgreSQL = async () => {
-  try {
-    const client = await pgPool.connect();
+// Verificar conexión PostgreSQL
+pgPool.connect()
+  .then(() => {
     console.log('✅ Conectado a PostgreSQL');
-    client.release();
-    
     // Crear tabla si no existe
-    try {
-      await pgPool.query(`
-        CREATE TABLE IF NOT EXISTS task_metadata (
-          id SERIAL PRIMARY KEY,
-          task_id VARCHAR(255) UNIQUE NOT NULL,
-          user_id VARCHAR(255) NOT NULL,
-          priority VARCHAR(50) DEFAULT 'media',
-          category VARCHAR(100) DEFAULT 'general',
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
-      console.log('✅ Tabla PostgreSQL creada/verificada');
-    } catch (tableError) {
-      console.error('❌ Error creando tabla:', tableError.message);
-    }
-    
-  } catch (err) {
-    console.error('❌ Error conectando a PostgreSQL:', err.message);
-    // Reconectar después de 5 segundos
-    setTimeout(connectPostgreSQL, 5000);
-  }
-};
-connectPostgreSQL();
+    return pgPool.query(`
+      CREATE TABLE IF NOT EXISTS task_metadata (
+        id SERIAL PRIMARY KEY,
+        task_id VARCHAR(255) UNIQUE NOT NULL,
+        user_id VARCHAR(255) NOT NULL,
+        priority VARCHAR(50) DEFAULT 'media',
+        category VARCHAR(100) DEFAULT 'general',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+  })
+  .then(() => console.log('✅ Tabla PostgreSQL creada/verificada'))
+  .catch(err => console.error('❌ Error PostgreSQL:', err.message));
 
 // Modelo MongoDB para tareas
 const taskSchema = new mongoose.Schema({
@@ -166,7 +148,6 @@ app.post('/api/tasks', async (req, res) => {
       );
     } catch (pgError) {
       console.error('❌ Error guardando metadata:', pgError.message);
-      // Continuar aunque falle PostgreSQL
     }
     
     res.status(201).json({
@@ -247,36 +228,16 @@ app.get('/api/stats', async (req, res) => {
   }
 });
 
-// Manejo de errores global
-process.on('uncaughtException', (error) => {
-  console.error('❌ UNCAUGHT EXCEPTION:', error.message);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ UNHANDLED REJECTION at:', promise, 'reason:', reason);
-});
-
-// ✅ CONFIGURACIÓN OPTIMIZADA PARA RAILWAY
+// ✅ CONFIGURACIÓN CORRECTA PARA RAILWAY - PUERTO DINÁMICO
 const PORT = process.env.PORT || 3000;
 
-const server = app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
   console.log(`📚 API disponible en: http://0.0.0.0:${PORT}/api`);
 });
 
-// Manejo graceful de shutdown para Railway
+// Manejo graceful de shutdown
 process.on('SIGTERM', () => {
   console.log('🔄 Recibió SIGTERM, cerrando gracefully...');
-  server.close(() => {
-    console.log('✅ Servidor cerrado');
-    process.exit(0);
-  });
-});
-
-process.on('SIGINT', () => {
-  console.log('🔄 Recibió SIGINT, cerrando gracefully...');
-  server.close(() => {
-    console.log('✅ Servidor cerrado');
-    process.exit(0);
-  });
+  process.exit(0);
 });
