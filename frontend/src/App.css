@@ -32,12 +32,10 @@
 }
 
 .header-image {
-  width: 80px;
-  height: 80px;
+  width: 160px;
+  height: 160px;
   border-radius: 12px;
   margin-bottom: 1rem;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-  border: 2px solid rgba(255,255,255,0.2);
 }
 
 .task-form {
@@ -51,6 +49,9 @@
 .task-form h2 {
   margin-bottom: 1.5rem;
   color: #4a5568;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .task-form input,
@@ -105,6 +106,10 @@
   color: white;
   margin-bottom: 1rem;
   text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
 }
 
 .stats-grid {
@@ -138,6 +143,9 @@
 .task-list h2 {
   color: white;
   margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .no-tasks {
@@ -257,6 +265,10 @@
 }
 
 .task-actions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   flex: 1;
   padding: 8px 12px;
   border: none;
@@ -321,7 +333,7 @@
   }
   
   .header-image {
-    width: 70px;
-    height: 70px;
+    width: 120px;
+    height: 120px;
   }
 }

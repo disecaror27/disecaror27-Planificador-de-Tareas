@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { FaPlus, FaChartBar, FaList, FaCheck, FaTrash } from 'react-icons/fa';
 import './App.css';
 
 const API_URL = 'https://disecaror27-planificador-de-tareas.onrender.com/api';
@@ -90,7 +91,7 @@ function App() {
 
       <div className="container">
         <section className="task-form">
-          <h2>➕ Nueva Tarea</h2>
+          <h2><FaPlus /> Nueva Tarea</h2>
           <form onSubmit={createTask}>
             <input
               type="text"
@@ -120,7 +121,7 @@ function App() {
 
         {stats && (
           <section className="stats">
-            <h2>📊 Estadísticas</h2>
+            <h2><FaChartBar /> Estadísticas</h2>
             <div className="stats-grid">
               <div className="stat-card">
                 <h3>Total Tareas</h3>
@@ -139,7 +140,7 @@ function App() {
         )}
 
         <section className="task-list">
-          <h2>📋 Lista de Tareas ({tasks.filter(task => task.status !== 'completada').length})</h2>
+          <h2><FaList /> Lista de Tareas ({tasks.filter(task => task.status !== 'completada').length})</h2>
           {tasks.filter(task => task.status !== 'completada').length === 0 ? (
             <p className="no-tasks">No hay tareas pendientes. ¡Crea una nueva!</p>
           ) : (
@@ -172,14 +173,14 @@ function App() {
                         onClick={() => updateTaskStatus(task._id, 'completada')}
                         className="btn-success"
                       >
-                        ✅ Completar
+                        <FaCheck /> Completar
                       </button>
                     )}
                     <button 
                       onClick={() => deleteTask(task._id)}
                       className="btn-danger"
                     >
-                      🗑️ Eliminar
+                      <FaTrash /> Eliminar
                     </button>
                   </div>
                 </div>
