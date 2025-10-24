@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 
-// ✅ URL CORREGIDA - BACKEND EN RENDER
 const API_URL = 'https://disecaror27-planificador-de-tareas.onrender.com/api';
 
 function App() {
@@ -15,7 +14,6 @@ function App() {
   });
   const [loading, setLoading] = useState(false);
 
-  // Cargar tareas
   const fetchTasks = async () => {
     try {
       const response = await axios.get(`${API_URL}/tasks`);
@@ -25,7 +23,6 @@ function App() {
     }
   };
 
-  // Cargar estadísticas
   const fetchStats = async () => {
     try {
       const response = await axios.get(`${API_URL}/stats`);
@@ -35,7 +32,6 @@ function App() {
     }
   };
 
-  // Crear tarea
   const createTask = async (e) => {
     e.preventDefault();
     if (!newTask.title.trim()) return;
@@ -53,7 +49,6 @@ function App() {
     }
   };
 
-  // Actualizar estado de tarea
   const updateTaskStatus = async (taskId, newStatus) => {
     try {
       await axios.put(`${API_URL}/tasks/${taskId}`, { status: newStatus });
@@ -64,7 +59,6 @@ function App() {
     }
   };
 
-  // Eliminar tarea
   const deleteTask = async (taskId) => {
     if (!confirm('¿Eliminar esta tarea?')) return;
     
@@ -95,7 +89,6 @@ function App() {
       </header>
 
       <div className="container">
-        {/* Formulario */}
         <section className="task-form">
           <h2>➕ Nueva Tarea</h2>
           <form onSubmit={createTask}>
@@ -125,7 +118,6 @@ function App() {
           </form>
         </section>
 
-        {/* Estadísticas */}
         {stats && (
           <section className="stats">
             <h2>📊 Estadísticas</h2>
@@ -146,14 +138,13 @@ function App() {
           </section>
         )}
 
-        {/* Lista de Tareas */}
         <section className="task-list">
-          <h2>📋 Lista de Tareas ({tasks.length})</h2>
-          {tasks.length === 0 ? (
-            <p className="no-tasks">No hay tareas. ¡Crea la primera!</p>
+          <h2>📋 Lista de Tareas ({tasks.filter(task => task.status !== 'completada').length})</h2>
+          {tasks.filter(task => task.status !== 'completada').length === 0 ? (
+            <p className="no-tasks">No hay tareas pendientes. ¡Crea una nueva!</p>
           ) : (
             <div className="tasks-grid">
-              {tasks.map(task => (
+              {tasks.filter(task => task.status !== 'completada').map(task => (
                 <div key={task._id} className={`task-card ${task.status}`}>
                   <div className="task-header">
                     <h3>{task.title}</h3>
@@ -184,14 +175,6 @@ function App() {
                         ✅ Completar
                       </button>
                     )}
-                    {task.status === 'completada' && (
-                      <button 
-                        onClick={() => updateTaskStatus(task._id, 'pendiente')}
-                        className="btn-warning"
-                      >
-                        ↩️ Pendiente
-                      </button>
-                    )}
                     <button 
                       onClick={() => deleteTask(task._id)}
                       className="btn-danger"
@@ -205,6 +188,10 @@ function App() {
           )}
         </section>
       </div>
+
+      <footer className="app-footer">
+        <p>Copyright © 2025 Diego Carvajal Todos los derechos reservados.</p>
+      </footer>
     </div>
   );
 }

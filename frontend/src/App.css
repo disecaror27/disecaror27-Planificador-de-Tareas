@@ -31,16 +31,15 @@
   padding: 0 20px;
 }
 
-/* Estilos para el logo en el título */
-.title-logo {
-  width: 30px;
-  height: 30px;
-  border-radius: 6px;
-  vertical-align: middle;
-  margin-right: 10px;
+.header-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  border: 2px solid rgba(255,255,255,0.2);
 }
 
-/* Formulario */
 .task-form {
   background: white;
   padding: 2rem;
@@ -98,7 +97,6 @@
   cursor: not-allowed;
 }
 
-/* Estadísticas */
 .stats {
   margin-bottom: 2rem;
 }
@@ -137,7 +135,6 @@
   color: #667eea;
 }
 
-/* Lista de Tareas */
 .task-list h2 {
   color: white;
   margin-bottom: 1rem;
@@ -278,15 +275,6 @@
   background: #38a169;
 }
 
-.btn-warning {
-  background: #ed8936;
-  color: white;
-}
-
-.btn-warning:hover {
-  background: #dd6b20;
-}
-
 .btn-danger {
   background: #f56565;
   color: white;
@@ -296,7 +284,20 @@
   background: #e53e3e;
 }
 
-/* Responsive */
+.app-footer {
+  text-align: center;
+  padding: 2rem;
+  margin-top: 3rem;
+  color: white;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.app-footer p {
+  margin: 0;
+  opacity: 0.8;
+  font-size: 0.9rem;
+}
+
 @media (max-width: 768px) {
   .app-header h1 {
     font-size: 2rem;
@@ -319,8 +320,8 @@
     align-self: flex-start;
   }
   
-  .title-logo {
-    width: 25px;
-    height: 25px;
+  .header-image {
+    width: 70px;
+    height: 70px;
   }
 }
