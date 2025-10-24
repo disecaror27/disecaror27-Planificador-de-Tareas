@@ -190,7 +190,7 @@ function App() {
       </div>
 
       <footer className="app-footer">
-        <p>Copyright © 2025 Diego Carvajal Todos los derechos reservados.</p>
+        <p>Copyright © 2025 Diego Carvajal. Todos los derechos reservados.</p>
       </footer>
     </div>
   );
