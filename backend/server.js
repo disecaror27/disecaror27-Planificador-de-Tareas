@@ -2,10 +2,10 @@ const express = require('express');
 const mongoose = require('mongoose');
 const { Pool } = require('pg');
 const cors = require('cors');
+require('dotenv').config();
 
 const app = express();
 
-// ✅ CONFIGURACIÓN CORS CORREGIDA PARA VERCEL
 app.use(cors({
   origin: [
     'http://localhost:5173',
@@ -20,29 +20,24 @@ app.use(cors({
 
 app.use(express.json());
 
-// ✅ CONEXIÓN MONGODB
-mongoose.connect('mongodb+srv://disecaror27_db_user:disecaror27@cluster0.tnhmlkl.mongodb.net/tareasdb?retryWrites=true&w=majority&appName=Cluster0')
+mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('✅ Conectado a MongoDB Atlas'))
   .catch(err => console.error('❌ Error MongoDB:', err));
 
-// ✅ CONEXIÓN POSTGRESQL CON MANEJO DE ERRORES
 const pgPool = new Pool({
-  connectionString: 'postgresql://disecaror27_user:sJgyJDqNT8EyQRcGr93f2v3BqJ75ghdQ@dpg-d3rfnt1r0fns73djvkf0-a.oregon-postgres.render.com/disecaror27?ssl=true',
+  connectionString: process.env.POSTGRES_URI,
   ssl: {
     rejectUnauthorized: false
   }
 });
 
-// Manejo de errores de PostgreSQL
 pgPool.on('error', (err, client) => {
   console.error('❌ Error in PostgreSQL pool:', err.message);
 });
 
-// Verificar conexión PostgreSQL
 pgPool.connect()
   .then(() => {
     console.log('✅ Conectado a PostgreSQL');
-    // Crear tabla si no existe
     return pgPool.query(`
       CREATE TABLE IF NOT EXISTS task_metadata (
         id SERIAL PRIMARY KEY,
@@ -57,7 +52,9 @@ pgPool.connect()
   .then(() => console.log('✅ Tabla PostgreSQL creada/verificada'))
   .catch(err => console.error('❌ Error PostgreSQL:', err.message));
 
-// Modelo MongoDB para tareas
+const authRoutes = require('./routes/auth');
+app.use('/api/auth', authRoutes);
+
 const taskSchema = new mongoose.Schema({
   title: { type: String, required: true },
   description: String,
@@ -70,13 +67,11 @@ const taskSchema = new mongoose.Schema({
 
 const Task = mongoose.model('Task', taskSchema);
 
-// 📊 RUTAS DE LA API
+const auth = require('./middleware/auth');
 
-// Health check
 app.get('/api/health', async (req, res) => {
   try {
     let postgresStatus = '❌ Error';
-    // Verificar PostgreSQL
     try {
       const client = await pgPool.connect();
       postgresStatus = '✅ Conectado';
@@ -98,15 +93,13 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
-// Obtener todas las tareas
-app.get('/api/tasks', async (req, res) => {
+app.get('/api/tasks', auth, async (req, res) => {
   try {
-    const tasks = await Task.find().sort({ createdAt: -1 });
+    const tasks = await Task.find({ userId: req.user._id }).sort({ createdAt: -1 });
     
-    // Obtener metadata de PostgreSQL (si está disponible)
     let metadataResult = { rows: [] };
     try {
-      metadataResult = await pgPool.query('SELECT * FROM task_metadata');
+      metadataResult = await pgPool.query('SELECT * FROM task_metadata WHERE user_id = $1', [req.user._id.toString()]);
     } catch (pgError) {
       console.error('❌ Error obteniendo metadata:', pgError.message);
     }
@@ -125,26 +118,23 @@ app.get('/api/tasks', async (req, res) => {
   }
 });
 
-// Crear nueva tarea
-app.post('/api/tasks', async (req, res) => {
+app.post('/api/tasks', auth, async (req, res) => {
   try {
-    const { title, description, priority, userId } = req.body;
+    const { title, description, priority } = req.body;
     
-    // Guardar en MongoDB
     const task = new Task({
       title,
       description,
       priority,
-      userId: userId || 'user-123'
+      userId: req.user._id
     });
     
     await task.save();
     
-    // Guardar metadata en PostgreSQL (si está disponible)
     try {
       await pgPool.query(
         'INSERT INTO task_metadata (task_id, user_id, priority, category) VALUES ($1, $2, $3, $4)',
-        [task._id.toString(), 'user-123', priority, 'general']
+        [task._id.toString(), req.user._id.toString(), priority, 'general']
       );
     } catch (pgError) {
       console.error('❌ Error guardando metadata:', pgError.message);
@@ -159,15 +149,18 @@ app.post('/api/tasks', async (req, res) => {
   }
 });
 
-// Actualizar tarea
-app.put('/api/tasks/:id', async (req, res) => {
+app.put('/api/tasks/:id', auth, async (req, res) => {
   try {
     const { status } = req.body;
-    const task = await Task.findByIdAndUpdate(
-      req.params.id,
+    const task = await Task.findOneAndUpdate(
+      { _id: req.params.id, userId: req.user._id },
       { status, updatedAt: new Date() },
       { new: true }
     );
+    
+    if (!task) {
+      return res.status(404).json({ error: 'Tarea no encontrada' });
+    }
     
     res.json(task);
   } catch (error) {
@@ -175,16 +168,21 @@ app.put('/api/tasks/:id', async (req, res) => {
   }
 });
 
-// Eliminar tarea
-app.delete('/api/tasks/:id', async (req, res) => {
+app.delete('/api/tasks/:id', auth, async (req, res) => {
   try {
-    await Task.findByIdAndDelete(req.params.id);
+    const task = await Task.findOneAndDelete({ 
+      _id: req.params.id, 
+      userId: req.user._id 
+    });
     
-    // También eliminar de PostgreSQL (si está disponible)
+    if (!task) {
+      return res.status(404).json({ error: 'Tarea no encontrada' });
+    }
+    
     try {
       await pgPool.query(
-        'DELETE FROM task_metadata WHERE task_id = $1',
-        [req.params.id]
+        'DELETE FROM task_metadata WHERE task_id = $1 AND user_id = $2',
+        [req.params.id, req.user._id.toString()]
       );
     } catch (pgError) {
       console.error('❌ Error eliminando metadata:', pgError.message);
@@ -196,19 +194,23 @@ app.delete('/api/tasks/:id', async (req, res) => {
   }
 });
 
-// Estadísticas desde ambas BD
-app.get('/api/stats', async (req, res) => {
+app.get('/api/stats', auth, async (req, res) => {
   try {
-    // Stats de MongoDB
-    const totalTasks = await Task.countDocuments();
-    const completedTasks = await Task.countDocuments({ status: 'completada' });
-    const pendingTasks = await Task.countDocuments({ status: 'pendiente' });
+    const totalTasks = await Task.countDocuments({ userId: req.user._id });
+    const completedTasks = await Task.countDocuments({ 
+      userId: req.user._id, 
+      status: 'completada' 
+    });
+    const pendingTasks = await Task.countDocuments({ 
+      userId: req.user._id, 
+      status: 'pendiente' 
+    });
     
-    // Stats de PostgreSQL (si está disponible)
     let pgStats = { rows: [] };
     try {
       pgStats = await pgPool.query(
-        'SELECT COUNT(*) as total, priority FROM task_metadata GROUP BY priority'
+        'SELECT COUNT(*) as total, priority FROM task_metadata WHERE user_id = $1 GROUP BY priority',
+        [req.user._id.toString()]
       );
     } catch (pgError) {
       console.error('❌ Error obteniendo stats PostgreSQL:', pgError.message);
@@ -228,15 +230,14 @@ app.get('/api/stats', async (req, res) => {
   }
 });
 
-// ✅ CONFIGURACIÓN CORRECTA PARA RAILWAY - PUERTO DINÁMICO
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
-  console.log(`📚 API disponible en: http://0.0.0.0:${PORT}/api`);
+  console.log(`📚 API disponible en: http://localhost:${PORT}/api`);
+  console.log(`🔐 Rutas de autenticación en: http://localhost:${PORT}/api/auth`);
 });
 
-// Manejo graceful de shutdown
 process.on('SIGTERM', () => {
   console.log('🔄 Recibió SIGTERM, cerrando gracefully...');
   process.exit(0);

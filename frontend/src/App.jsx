@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { FaPlus, FaChartBar, FaList, FaCheck, FaTrash } from 'react-icons/fa';
+import { FaPlus, FaChartBar, FaList, FaCheck, FaTrash, FaSignOutAlt, FaUser } from 'react-icons/fa';
+import Login from './components/Login';
 import './App.css';
 
-const API_URL = 'https://disecaror27-planificador-de-tareas.onrender.com/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://disecaror27-planificador-de-tareas.onrender.com/api';
 
 function App() {
   const [tasks, setTasks] = useState([]);
@@ -14,19 +15,60 @@ function App() {
     priority: 'media'
   });
   const [loading, setLoading] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
+  const [appLoading, setAppLoading] = useState(true);
 
-  const fetchTasks = async () => {
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('user');
+
+    if (token && userData) {
+      verifyAuth(token, JSON.parse(userData));
+    } else {
+      setAppLoading(false);
+    }
+  }, []);
+
+  const verifyAuth = async (token, userData) => {
     try {
-      const response = await axios.get(`${API_URL}/tasks`);
-      setTasks(response.data);
+      const response = await axios.get(`${API_URL}/auth/verify`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (response.data.valid) {
+        setUser(userData);
+        setIsAuthenticated(true);
+        fetchTasks(token);
+        fetchStats(token);
+      }
     } catch (error) {
-      console.error('Error cargando tareas:', error);
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    } finally {
+      setAppLoading(false);
     }
   };
 
-  const fetchStats = async () => {
+  const fetchTasks = async (token = localStorage.getItem('token')) => {
     try {
-      const response = await axios.get(`${API_URL}/stats`);
+      const response = await axios.get(`${API_URL}/tasks`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setTasks(response.data);
+    } catch (error) {
+      console.error('Error cargando tareas:', error);
+      if (error.response?.status === 401) {
+        handleLogout();
+      }
+    }
+  };
+
+  const fetchStats = async (token = localStorage.getItem('token')) => {
+    try {
+      const response = await axios.get(`${API_URL}/stats`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setStats(response.data);
     } catch (error) {
       console.error('Error cargando stats:', error);
@@ -39,12 +81,17 @@ function App() {
 
     setLoading(true);
     try {
-      await axios.post(`${API_URL}/tasks`, newTask);
+      await axios.post(`${API_URL}/tasks`, newTask, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
       setNewTask({ title: '', description: '', priority: 'media' });
       await fetchTasks();
       await fetchStats();
     } catch (error) {
       console.error('Error creando tarea:', error);
+      if (error.response?.status === 401) {
+        handleLogout();
+      }
     } finally {
       setLoading(false);
     }
@@ -52,11 +99,16 @@ function App() {
 
   const updateTaskStatus = async (taskId, newStatus) => {
     try {
-      await axios.put(`${API_URL}/tasks/${taskId}`, { status: newStatus });
+      await axios.put(`${API_URL}/tasks/${taskId}`, { status: newStatus }, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
       await fetchTasks();
       await fetchStats();
     } catch (error) {
       console.error('Error actualizando tarea:', error);
+      if (error.response?.status === 401) {
+        handleLogout();
+      }
     }
   };
 
@@ -64,29 +116,70 @@ function App() {
     if (!confirm('¿Eliminar esta tarea?')) return;
     
     try {
-      await axios.delete(`${API_URL}/tasks/${taskId}`);
+      await axios.delete(`${API_URL}/tasks/${taskId}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
       await fetchTasks();
       await fetchStats();
     } catch (error) {
       console.error('Error eliminando tarea:', error);
+      if (error.response?.status === 401) {
+        handleLogout();
+      }
     }
   };
 
-  useEffect(() => {
-    fetchTasks();
-    fetchStats();
-  }, []);
+  const handleLogin = (userData, token) => {
+    setUser(userData);
+    setIsAuthenticated(true);
+    fetchTasks(token);
+    fetchStats(token);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+    setIsAuthenticated(false);
+    setTasks([]);
+    setStats(null);
+  };
+
+  if (appLoading) {
+    return (
+      <div className="loading-container">
+        <div className="loading">Cargando...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Login onLogin={handleLogin} />;
+  }
 
   return (
     <div className="app">
       <header className="app-header">
-        <img 
-          src="https://i.imgur.com/Q17EHVQ.png" 
-          alt="Logo ITS Japon" 
-          className="header-image"
-        />
-        <h1>Planificador de Tareas ITS Japón</h1>
-        <p>Base de datos: MongoDB + PostgreSQL</p>
+        <div className="header-content">
+          <img 
+            src="https://i.imgur.com/Q17EHVQ.png" 
+            alt="Logo ITS Japon" 
+            className="header-image"
+          />
+          <div className="header-text">
+            <h1>Planificador de Tareas ITS Japón</h1>
+            <p>Base de datos: MongoDB + PostgreSQL</p>
+          </div>
+        </div>
+        
+        <div className="user-info">
+          <span className="user-welcome">
+            <FaUser /> Hola, Diego
+          </span>
+          <button onClick={handleLogout} className="logout-button">
+            <FaSignOutAlt /> Cerrar Sesión
+          </button>
+        </div>
       </header>
 
       <div className="container">
