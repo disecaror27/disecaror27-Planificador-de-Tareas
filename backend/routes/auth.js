@@ -136,4 +136,47 @@ router.get('/setup-get', async (req, res) => {
   }
 });
 
+// 🔧 ENDPOINT TEMPORAL PARA RESETEAR CONTRASEÑA DEL ADMIN
+router.get('/fix-admin-login', async (req, res) => {
+  try {
+    console.log('🔧 Ejecutando fix-admin-login...');
+    
+    const user = await User.findOne({ username: 'admin' });
+    
+    if (!user) {
+      console.log('❌ Usuario admin no encontrado, creando...');
+      const newUser = new User({
+        username: 'admin',
+        password: '123456',
+        email: 'dscarvajalo@itsjapon.edu.ec',
+        role: 'admin'
+      });
+      await newUser.save();
+      return res.json({ 
+        success: true, 
+        message: '✅ Usuario admin CREADO con contraseña 123456' 
+      });
+    }
+    
+    console.log('✅ Usuario admin encontrado:', user.username);
+    
+    user.password = '123456';
+    await user.save();
+    
+    console.log('✅ Contraseña reseteada exitosamente');
+    
+    res.json({ 
+      success: true, 
+      message: '✅ CONTRASEÑA RESETEADA - Ahora usa: usuario: "admin", contraseña: "123456"' 
+    });
+    
+  } catch (error) {
+    console.error('❌ Error en fix-admin-login:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error: ' + error.message 
+    });
+  }
+});
+
 module.exports = router;
